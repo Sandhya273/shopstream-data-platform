@@ -2,7 +2,7 @@
 Local stand-in for Snowflake COPY INTO / Snowpipe.
 
 Loads files from the local lake (same layout as the S3 raw bucket) into a DuckDB
-database whose RAW schema mirrors snowflake/04_raw_tables.sql:
+database whose RAW schema mirrors snowflake/migrations/V1.0.4__raw_tables.sql:
 
   raw.dms_customers / dms_products / dms_orders / dms_order_items   (CDC rows, all VARCHAR)
   raw.payments            (raw VARIANT-like JSON string)
@@ -51,7 +51,7 @@ def load_dms(con, root: Path) -> dict:
         files = sorted((root / "dms" / t).rglob("*.csv"))
         loaded = 0
         for f in files:
-            rel = str(f.relative_to(root))
+            rel = f.relative_to(root).as_posix()
             if already_loaded(con, rel):
                 continue
             # all_varchar=true mirrors landing CDC into string columns (typed later in dbt staging)
@@ -70,7 +70,7 @@ def load_dms(con, root: Path) -> dict:
 def load_json_lines(con, root: Path, prefix: str, table: str, pattern: str) -> int:
     n_files = 0
     for f in sorted((root / prefix).rglob(pattern)):
-        rel = str(f.relative_to(root))
+        rel = f.relative_to(root).as_posix()
         if already_loaded(con, rel):
             continue
         # one JSON document per line -> one VARIANT-like row (like COPY INTO ... FILE_FORMAT=(TYPE=JSON))
@@ -85,7 +85,7 @@ def load_json_lines(con, root: Path, prefix: str, table: str, pattern: str) -> i
 def load_payments(con, root: Path) -> int:
     n_files = 0
     for f in sorted((root / "raw" / "payments").rglob("*.parquet")):
-        rel = str(f.relative_to(root))
+        rel = f.relative_to(root).as_posix()
         if already_loaded(con, rel):
             continue
         n = con.execute(f"""insert into raw.payments
