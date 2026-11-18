@@ -1,0 +1,70 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # OIDC to AWS - no long-lived keys
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod   # requires reviewer approval
+    env:
+      AWS_REGION: ap-south-1
+      ECR_REPO: shopstream-dbt
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      - name: Snowflake objects (versioned SQL via schemachange)
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_ADMIN_PRIVATE_KEY }}
+        run: |
+          pip install schemachange
+          schemachange deploy -f snowflake/migrations -a "$SNOWFLAKE_ACCOUNT" -u SVC_DEPLOY -r SYSADMIN -w TRANSFORM_WH \
+            -c RAW_DB.AUDIT.CHANGE_HISTORY --create-change-history-table
+
+      - name: Build & push dbt image
+        id: img
+        run: |
+          aws ecr get-login-password | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+          IMAGE=${{ secrets.ECR_REGISTRY }}/$ECR_REPO:${GITHUB_SHA::8}
+          docker build -f docker/Dockerfile -t $IMAGE .
+          docker push $IMAGE
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Build Lambda package + dependency layer
+        run: |
+          mkdir -p infra/terraform/build/lambda_src && cp -r ingestion infra/terraform/build/lambda_src/
+          mkdir -p infra/terraform/build/python
+          pip install pyarrow requests snowflake-connector-python cryptography -t infra/terraform/build/python
+          cd infra/terraform/build && zip -qr deps_layer.zip python
+
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform apply
+        working-directory: infra/terraform
+        run: |
+          terraform init
+          terraform apply -auto-approve -var-file=prod.tfvars -var="dbt_image_uri=${{ steps.img.outputs.image }}"
+
+      - name: dbt build (prod), post-dbt Snowflake objects, publish manifest for Slim CI
+        working-directory: dbt
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+        run: |
+          pip install dbt-snowflake schemachange
+          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > /tmp/key.p8
+          export SNOWFLAKE_PRIVATE_KEY_PATH=/tmp/key.p8
+          dbt build --target prod --profiles-dir .
+          aws s3 cp target/manifest.json s3://shopstream-dbt-artifacts/prod/manifest.json
+          cd .. && schemachange deploy -f snowflake/post_dbt -a "$SNOWFLAKE_ACCOUNT" -u SVC_DEPLOY -r SYSADMIN \
+            -w TRANSFORM_WH -c RAW_DB.AUDIT.CHANGE_HISTORY

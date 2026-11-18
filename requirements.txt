@@ -1,0 +1,8 @@
+duckdb>=1.1
+dbt-core>=1.10,<2
+dbt-duckdb>=1.9
+pandas>=2.2
+pyarrow>=16
+pyyaml>=6
+requests>=2.32
+boto3>=1.34

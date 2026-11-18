@@ -1,0 +1,395 @@
+<meta name="dash-one-writer">
+<style>
+.ss { font-family: var(--font-anthropic-sans); color: var(--color-fg); display: flex; flex-direction: column; gap: var(--cds-gap-xl); }
+.ss h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; }
+.ss h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0 0 var(--cds-gap-sm); }
+.ss h3 { font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); margin: 0 0 var(--cds-gap-xs); }
+.ss-muted { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.ss-lede { font-size: var(--cds-font-size-body); line-height: 1.55; max-width: 72ch; margin: var(--cds-gap-sm) 0 0; }
+.ss-note { border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-sm) var(--cds-pad-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ss-nav { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); }
+.ss-nav a { color: var(--color-fg-muted); text-decoration: none; border-bottom: 1px solid var(--color-border-line); }
+.ss-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--cds-gap-md); }
+.ss-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; }
+.ss-value { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: 1.9rem; font-variant-numeric: tabular-nums; margin: var(--cds-gap-xs) 0; }
+.ss-chg { font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; font-weight: var(--cds-font-weight-medium); }
+.ss-good { color: var(--color-ok); } .ss-bad { color: var(--color-bad); }
+.ss-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--cds-gap-md); }
+.ss-chart { position: relative; min-height: 240px; }
+.ss-chart svg { display: block; width: 100%; }
+.ss-chart .axis text { fill: var(--cds-text-secondary); font-size: var(--cds-font-size-caption); }
+.ss-chart .axis path, .ss-chart .axis line { stroke: var(--cds-chart-axis); }
+.ss-chart .grid line { stroke: var(--cds-chart-grid); }
+.ss-chart .grid path { display: none; }
+.ss-chart .lbl { fill: var(--color-fg); font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.ss-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); box-shadow: var(--cds-shadow-popover); border-radius: var(--cds-radius); padding: 6px 9px; font-size: var(--cds-font-size-caption); white-space: nowrap; z-index: 5; }
+.ss-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-bottom: var(--cds-gap-xs); }
+.ss-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.ss-tw { overflow-x: auto; }
+.ss-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.ss-table th { text-align: left; font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); border-bottom: 1px solid var(--color-border-line); padding: 6px 8px; white-space: nowrap; }
+.ss-table td { border-bottom: 1px solid var(--color-border-line); padding: 6px 8px; }
+.ss-table .num { text-align: right; }
+.ss-pill { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: 11px; border: 1px solid currentColor; }
+.ss-heat td.cell { text-align: center; color: var(--color-fg); }
+details.ss-def summary { cursor: pointer; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+details.ss-def ul { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); line-height: 1.6; }
+@media print { .ss-nav { display: none; } }
+</style>
+
+<div class="ss">
+  <header id="top">
+    <h1>ShopStream retail analytics</h1>
+    <p class="ss-lede" id="takeaway">Net revenue was <b data-draw="tk-rev" data-source="kpis" data-where="metric=net_revenue" data-field="current">—</b> over the last 12 months, <span data-draw="tk-dir">—</span> <b data-draw="tk-chg" data-source="kpi_change" data-where="metric=net_revenue" data-field="change">—</b> on the year before. <b data-draw="tk-cat" data-source="category" data-row="0" data-field="category">—</b> brings in <b data-draw="tk-share" data-source="top_category_share">—</b> of product revenue, and <b data-draw="tk-recon" data-source="recon_exception_orders">—</b> orders don't match what the payment gateway captured.</p>
+    <p class="ss-note">Sample data: every figure comes from synthetic source data that the project's generator produced, run through the full pipeline (ingestion → warehouse → dbt marts). Period: Nov 2024 – Oct 2026.</p>
+    <nav class="ss-nav" aria-label="Sections">
+      <a href="#sales">Sales</a><a href="#products">Products</a><a href="#customers">Customers &amp; marketing</a><a href="#finance">Payments &amp; reconciliation</a><a href="#health">Pipeline health</a>
+    </nav>
+  </header>
+
+  <section id="sales">
+    <h2>Last 12 months vs the 12 before</h2>
+    <div class="ss-tiles">
+      <div class="ss-card" id="kpi-net_revenue"><div class="ss-muted">Net revenue</div>
+        <div class="ss-value" data-draw="kpi" data-kpi="net_revenue" data-source="kpis" data-where="metric=net_revenue" data-field="current">—</div>
+        <div class="ss-chg" data-draw="kpichg" data-kpi="net_revenue" data-source="kpi_change" data-where="metric=net_revenue" data-field="change">—</div></div>
+      <div class="ss-card" id="kpi-orders"><div class="ss-muted">Orders kept</div>
+        <div class="ss-value" data-draw="kpi" data-kpi="orders" data-source="kpis" data-where="metric=orders" data-field="current">—</div>
+        <div class="ss-chg" data-draw="kpichg" data-kpi="orders" data-source="kpi_change" data-where="metric=orders" data-field="change">—</div></div>
+      <div class="ss-card" id="kpi-aov"><div class="ss-muted">Average order value</div>
+        <div class="ss-value" data-draw="kpi" data-kpi="aov" data-source="kpis" data-where="metric=aov" data-field="current">—</div>
+        <div class="ss-chg" data-draw="kpichg" data-kpi="aov" data-source="kpi_change" data-where="metric=aov" data-field="change">—</div></div>
+      <div class="ss-card" id="kpi-margin_pct"><div class="ss-muted">Gross margin</div>
+        <div class="ss-value" data-draw="kpi" data-kpi="margin_pct" data-source="kpis" data-where="metric=margin_pct" data-field="current">—</div>
+        <div class="ss-chg" data-draw="kpichg" data-kpi="margin_pct" data-source="kpi_change" data-where="metric=margin_pct" data-field="change">—</div></div>
+      <div class="ss-card" id="kpi-active_customers"><div class="ss-muted">Active customers</div>
+        <div class="ss-value" data-draw="kpi" data-kpi="active_customers" data-source="kpis" data-where="metric=active_customers" data-field="current">—</div>
+        <div class="ss-chg" data-draw="kpichg" data-kpi="active_customers" data-source="kpi_change" data-where="metric=active_customers" data-field="change">—</div></div>
+      <div class="ss-card" id="kpi-return_rate"><div class="ss-muted">Return rate</div>
+        <div class="ss-value" data-draw="kpi" data-kpi="return_rate" data-source="kpis" data-where="metric=return_rate" data-field="current">—</div>
+        <div class="ss-chg" data-draw="kpichg" data-kpi="return_rate" data-source="kpi_change" data-where="metric=return_rate" data-field="change">—</div></div>
+    </div>
+    <p class="ss-muted">Net revenue counts item value after discounts for orders that were not cancelled or returned. Changes in margin and return rate are in percentage points.</p>
+
+    <div class="ss-grid2">
+      <div class="ss-card" id="monthly-revenue"><h3>Net revenue by month</h3><p class="ss-muted">October peaks are the Diwali festive season.</p>
+        <div class="ss-chart" data-draw="monthly" data-source="monthly"></div></div>
+      <div class="ss-card" id="channel-revenue"><h3>Net revenue by channel</h3>
+        <div class="ss-legend"><span><i data-legend="0"></i>App</span><span><i data-legend="1"></i>Marketplace</span><span><i data-legend="2"></i>Web</span></div>
+        <div class="ss-chart" data-draw="channel" data-source="monthly_channel"></div></div>
+    </div>
+  </section>
+
+  <section id="products">
+    <h2>Products</h2>
+    <div class="ss-grid2">
+      <div class="ss-card" id="category-revenue"><h3>Net revenue and margin by category</h3>
+        <div class="ss-chart" data-draw="category" data-source="category"></div></div>
+      <div class="ss-card" id="top-products"><h3>Top 10 products by net revenue</h3>
+        <div class="ss-tw"><table class="ss-table" data-source="top_products" data-row-key="product_name">
+          <thead><tr><th data-field="product_name">Product</th><th data-field="category">Category</th><th class="num" data-field="units_sold">Units</th><th class="num" data-field="net_revenue">Net revenue</th><th class="num" data-field="return_rate">Returns</th></tr></thead>
+          <tbody data-draw="topprod"></tbody></table></div></div>
+    </div>
+  </section>
+
+  <section id="customers">
+    <h2>Customers &amp; marketing</h2>
+    <div class="ss-grid2">
+      <div class="ss-card" id="funnel"><h3>Web &amp; app funnel, Aug – Oct 2026</h3><p class="ss-muted">Sessions reaching each step; clickstream tracking started in August 2026.</p>
+        <div class="ss-chart" data-draw="funnel" data-source="funnel"></div></div>
+      <div class="ss-card" id="rfm"><h3>Customer segments (RFM)</h3><p class="ss-muted">Customers and lifetime revenue by recency–frequency–monetary segment, as of 31 Oct 2026.</p>
+        <div class="ss-chart" data-draw="rfm" data-source="rfm"></div></div>
+    </div>
+    <div class="ss-grid2">
+      <div class="ss-card" id="traffic"><h3>Traffic sources</h3>
+        <div class="ss-tw"><table class="ss-table" data-source="traffic_sources" data-row-key="utm_source">
+          <thead><tr><th data-field="utm_source">Source</th><th class="num" data-field="sessions">Sessions</th><th class="num" data-field="purchases">Purchases</th><th class="num" data-field="conversion_rate">Conversion</th><th class="num" data-field="revenue">Revenue</th></tr></thead>
+          <tbody data-draw="traffic"></tbody></table></div></div>
+      <div class="ss-card" id="cohorts"><h3>Monthly cohort retention</h3><p class="ss-muted">Share of each month's new customers who ordered again N months later.</p>
+        <div class="ss-tw" data-draw="cohorts" data-source="cohorts"></div></div>
+    </div>
+  </section>
+
+  <section id="finance">
+    <h2>Payments &amp; reconciliation</h2>
+    <div class="ss-grid2">
+      <div class="ss-card" id="recon-status"><h3>Order-to-cash reconciliation</h3><p class="ss-muted">Every order compared with what the payment gateway captured and refunded.</p>
+        <div class="ss-tw"><table class="ss-table" data-source="recon_status" data-row-key="recon_status">
+          <thead><tr><th data-field="recon_status">Status</th><th class="num" data-field="orders">Orders</th><th class="num" data-field="abs_variance">Gap (INR)</th></tr></thead>
+          <tbody data-draw="recon"></tbody></table></div></div>
+      <div class="ss-card" id="payment-methods"><h3>Captured amount by payment method</h3>
+        <div class="ss-chart" data-draw="paymethods" data-source="payment_methods"></div></div>
+    </div>
+    <div class="ss-card" id="exceptions"><h3>Latest reconciliation exceptions</h3><p class="ss-muted">Orders with an amount mismatch or no captured payment, newest first. These go to finance operations each morning.</p>
+      <div class="ss-tw"><table class="ss-table" data-source="recon_exceptions" data-row-key="order_id">
+        <thead><tr><th data-field="order_id">Order</th><th data-field="order_date">Date</th><th data-field="order_status">Status</th><th data-field="payment_method">Method</th><th class="num" data-field="order_total">Order total</th><th class="num" data-field="captured_amount">Captured</th><th class="num" data-field="capture_variance">Variance</th><th data-field="recon_status">Issue</th></tr></thead>
+        <tbody data-draw="exceptions"></tbody></table></div></div>
+  </section>
+
+  <section id="health">
+    <h2>Pipeline health</h2>
+    <div class="ss-grid2">
+      <div class="ss-card" id="dq"><h3>Data quality rules, last run</h3>
+        <div class="ss-tw"><table class="ss-table" data-source="dq_results" data-row-key="rule">
+          <thead><tr><th data-field="rule">Rule</th><th data-field="severity">Severity</th><th class="num" data-field="observed">Observed</th><th class="num" data-field="threshold">Limit</th><th data-field="status">Result</th></tr></thead>
+          <tbody data-draw="dq"></tbody></table></div></div>
+      <div class="ss-card" id="recon-checks"><h3>Reconciliation: source → raw → marts</h3>
+        <div class="ss-tw"><table class="ss-table" data-source="reconciliation" data-row-key="check_name">
+          <thead><tr><th data-field="check_name">Check</th><th class="num" data-field="source">Source</th><th class="num" data-field="target">Target</th><th data-field="status">Result</th></tr></thead>
+          <tbody data-draw="reconchecks"></tbody></table></div></div>
+    </div>
+    <div class="ss-card" id="layers"><h3>Rows by layer</h3><p class="ss-muted">CDC change rows collapse to one row per order; duplicate clickstream events are removed before sessions are built.</p>
+      <div class="ss-tw"><table class="ss-table" data-source="layer_counts" data-row-key="object">
+        <thead><tr><th data-field="object">Table</th><th class="num" data-field="row_count">Rows</th></tr></thead>
+        <tbody data-draw="layers"></tbody></table></div></div>
+    <details class="ss-def"><summary>Metric definitions</summary>
+      <ul>
+        <li>Net revenue: item value after discounts, excluding cancelled and returned orders (shipping fees excluded).</li>
+        <li>Gross margin: net revenue minus cost of goods at the product's current unit cost.</li>
+        <li>Active customers: customers with at least one kept order in the period.</li>
+        <li>Conversion: sessions with a purchase divided by all sessions.</li>
+        <li>Reconciliation gap: absolute difference between captured payments and order total.</li>
+      </ul>
+    </details>
+  </section>
+</div>
+
+<script>
+window.SS = (function () {
+  const cr = (v) => '₹' + (v / 1e7).toFixed(2) + ' Cr';
+  const inr = (v) => Math.abs(v) >= 1e7 ? cr(v) : Math.abs(v) >= 1e5 ? '₹' + (v / 1e5).toFixed(1) + ' L' : '₹' + d3.format(',.0f')(v);
+  const pct = (v, d = 1) => (v * 100).toFixed(d) + '%';
+  const num = d3.format(',');
+  const rows = (id) => { const s = dash.data(id); return s.status === 'ok' ? s.data : null; };
+  function placeholder(el, id) {
+    const s = dash.data(id);
+    el.replaceChildren();
+    if (s.status === 'error') { const p = document.createElement('p'); p.className = 'ss-muted'; p.textContent = 'Failed to load'; el.append(p); }
+    else el.textContent = '—';
+  }
+  function tip(el) {
+    let t = el.querySelector(':scope > .ss-tip');
+    if (!t) { t = document.createElement('div'); t.className = 'ss-tip'; t.hidden = true; el.append(t); }
+    return {
+      show(ev, lines) {
+        t.replaceChildren(...lines.map((l, i) => { const d = document.createElement('div'); d.textContent = l; if (i === 0) d.style.fontWeight = 600; return d; }));
+        t.hidden = false;
+        const r = el.getBoundingClientRect();
+        let x = ev.clientX - r.left + 12, y = ev.clientY - r.top - 10;
+        if (x + t.offsetWidth > r.width) x = Math.max(0, ev.clientX - r.left - t.offsetWidth - 12);
+        t.style.left = x + 'px'; t.style.top = y + 'px';
+      },
+      hide() { t.hidden = true; }
+    };
+  }
+  function measure(svg, texts) {
+    const g = svg.append('g').attr('class', 'axis');
+    let w = 0;
+    texts.forEach((s) => { const n = g.append('text').text(s).node(); w = Math.max(w, n.getComputedTextLength()); });
+    g.remove();
+    return w;
+  }
+  // horizontal bars with value labels
+  function hbars(el, data, { label, value, fmt, tipLines, color }) {
+    el.replaceChildren();
+    const W = Math.max(280, el.clientWidth), bh = 26, H = data.length * bh + 10;
+    const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img');
+    const lw = measure(svg, data.map(label)) + 10;
+    const vw = measure(svg, data.map((d) => fmt(value(d)))) + 10;
+    const x = d3.scaleLinear().domain([0, d3.max(data, value)]).range([0, Math.max(40, W - lw - vw)]);
+    const t = tip(el);
+    const g = svg.selectAll('g.r').data(data).join('g').attr('class', 'r').attr('transform', (d, i) => `translate(0,${i * bh + 4})`);
+    g.append('text').attr('class', 'lbl').attr('x', lw - 8).attr('y', bh / 2).attr('dy', '0.32em').attr('text-anchor', 'end').text(label);
+    g.append('rect').attr('x', lw).attr('height', bh - 8).attr('width', (d) => x(value(d))).attr('rx', 3)
+      .style('fill', color || dash.colors[0])
+      .on('pointermove', (ev, d) => t.show(ev, tipLines(d))).on('pointerleave', () => t.hide());
+    g.append('text').attr('class', 'lbl').attr('x', (d) => lw + x(value(d)) + 6).attr('y', bh / 2 - 4).attr('dy', '0.32em').text((d) => fmt(value(d)));
+    return svg;
+  }
+  return { cr, inr, pct, num, rows, placeholder, tip, measure, hbars };
+})();
+
+dash.calc('kpi_change', {
+  title: 'Change vs prior 12 months',
+  description: 'Relative change for amounts and counts; percentage-point change for margin and return rate.',
+  inputs: ['kpis'],
+  fn: (kpis) => kpis.map((r) => ({
+    metric: r.metric,
+    change: (r.metric === 'margin_pct' || r.metric === 'return_rate') ? (+r.current - +r.previous) : (+r.current / +r.previous - 1)
+  }))
+});
+dash.calc('top_category_share', {
+  title: 'Top category share of product revenue',
+  inputs: ['category'],
+  fn: (category) => d3.max(category, (c) => +c.net_revenue) / d3.sum(category, (c) => +c.net_revenue)
+});
+dash.calc('recon_exception_orders', {
+  title: 'Orders that do not reconcile',
+  description: 'Orders with an amount mismatch or no captured payment.',
+  inputs: ['recon_status'],
+  fn: (recon) => d3.sum(recon.filter((r) => r.recon_status === 'amount_mismatch' || r.recon_status === 'missing_payment'), (r) => +r.orders)
+});
+</script>
+
+<script>
+const { cr, inr, pct, num, rows, placeholder, tip, hbars } = window.SS;
+
+function fmtKpi(m, v) {
+  if (m === 'net_revenue') return cr(v);
+  if (m === 'aov') return '₹' + d3.format(',.0f')(v);
+  if (m === 'margin_pct' || m === 'return_rate') return pct(v);
+  return num(Math.round(v));
+}
+dash.draw('kpi', (el) => {
+  const r = rows('kpis'); if (!r) return placeholder(el, 'kpis');
+  const row = r.find((x) => x.metric === el.dataset.kpi);
+  el.textContent = row ? fmtKpi(row.metric, +row.current) : '—';
+});
+dash.draw('kpichg', (el) => {
+  const s = dash.data('kpi_change'); if (s.status !== 'ok' || !s.data) { el.textContent = '—'; return; }
+  const m = el.dataset.kpi, row = s.data.find((x) => x.metric === m);
+  if (!row) { el.textContent = '—'; return; }
+  const pp = m === 'margin_pct' || m === 'return_rate';
+  const v = row.change;
+  const good = m === 'return_rate' ? v < 0 : v > 0;
+  el.textContent = (v >= 0 ? '+' : '−') + (pp ? (Math.abs(v) * 100).toFixed(1) + ' pp' : (Math.abs(v) * 100).toFixed(1) + '%') + ' vs prior year';
+  el.className = 'ss-chg ' + (good ? 'ss-good' : 'ss-bad');
+});
+
+dash.draw('tk-rev', (el) => { const r = rows('kpis'); const row = r && r.find((x) => x.metric === 'net_revenue'); el.textContent = row ? cr(+row.current) : '—'; });
+dash.draw('tk-dir', (el) => { const s = dash.data('kpi_change'); const row = s.status === 'ok' && s.data && s.data.find((x) => x.metric === 'net_revenue'); el.textContent = row ? (row.change >= 0 ? 'up' : 'down') : '—'; });
+dash.draw('tk-chg', (el) => { const s = dash.data('kpi_change'); const row = s.status === 'ok' && s.data && s.data.find((x) => x.metric === 'net_revenue'); el.textContent = row ? pct(Math.abs(row.change)) : '—'; });
+dash.draw('tk-cat', (el) => { const r = rows('category'); el.textContent = r && r.length ? r[0].category : '—'; });
+dash.draw('tk-share', (el) => { const s = dash.data('top_category_share'); el.textContent = s.status === 'ok' && s.data != null ? pct(s.data, 0) : '—'; });
+dash.draw('tk-recon', (el) => { const s = dash.data('recon_exception_orders'); el.textContent = s.status === 'ok' && s.data != null ? num(s.data) : '—'; });
+
+// monthly bars
+dash.draw('monthly', (el) => {
+  const data = rows('monthly'); if (!data) return placeholder(el, 'monthly');
+  el.replaceChildren();
+  const W = Math.max(280, el.clientWidth), H = 240;
+  const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Bar chart of net revenue by month, Nov 2024 to Oct 2026');
+  const y = d3.scaleLinear().domain([0, d3.max(data, (d) => +d.net_revenue)]).nice().range([H - 24, 10]);
+  const yTicks = y.ticks(4);
+  const ml = window.SS.measure(svg, yTicks.map((t) => (t / 1e5).toFixed(0) + ' L')) + 10;
+  const x = d3.scaleBand().domain(data.map((d) => d.month)).range([ml, W - 6]).padding(0.2);
+  svg.append('g').attr('class', 'grid').attr('transform', `translate(${ml},0)`).call(d3.axisLeft(y).tickValues(yTicks).tickSize(-(W - ml - 6)).tickFormat(''));
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(${ml},0)`).call(d3.axisLeft(y).tickValues(yTicks.filter((t) => t > 0)).tickFormat((t) => (t / 1e5).toFixed(0) + ' L').tickSize(0).tickPadding(6)).call((g) => g.select('.domain').remove());
+  const every = Math.ceil(data.length / Math.max(2, Math.floor((W - ml) / 90)));
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - 24})`).call(d3.axisBottom(x).tickValues(data.map((d) => d.month).filter((m, i) => i % every === 0)).tickFormat((m) => d3.utcFormat('%b %y')(new Date(m + '-01T00:00:00Z'))).tickSize(0).tickPadding(8)).call((g) => g.select('.domain').remove());
+  const t = tip(el);
+  svg.selectAll('rect.b').data(data).join('rect').attr('class', 'b').attr('x', (d) => x(d.month)).attr('width', x.bandwidth()).attr('rx', 2)
+    .attr('y', (d) => y(+d.net_revenue)).attr('height', (d) => y(0) - y(+d.net_revenue))
+    .style('fill', (d) => (d.month.endsWith('-10') ? dash.colors[1] : dash.colors[0]))
+    .on('pointermove', (ev, d) => t.show(ev, [d3.utcFormat('%B %Y')(new Date(d.month + '-01T00:00:00Z')), 'Net revenue ' + inr(+d.net_revenue), 'Orders kept ' + num(+d.orders), 'Gross margin ' + inr(+d.gross_margin)]))
+    .on('pointerleave', () => t.hide());
+});
+
+// channel lines
+dash.draw('channel', (el) => {
+  const data = rows('monthly_channel'); if (!data) return placeholder(el, 'monthly_channel');
+  document.querySelectorAll('#channel-revenue [data-legend]').forEach((i) => { i.style.background = dash.colors[+i.dataset.legend]; });
+  el.replaceChildren();
+  const W = Math.max(280, el.clientWidth), H = 240;
+  const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Line chart of monthly net revenue for app, marketplace and web channels');
+  const months = [...new Set(data.map((d) => d.month))];
+  const series = d3.groups(data, (d) => d.channel).sort((a, b) => d3.ascending(a[0], b[0]));
+  const y = d3.scaleLinear().domain([0, d3.max(data, (d) => +d.net_revenue)]).nice().range([H - 24, 10]);
+  const yTicks = y.ticks(4);
+  const ml = window.SS.measure(svg, yTicks.map((t) => (t / 1e5).toFixed(0) + ' L')) + 10;
+  const x = d3.scalePoint().domain(months).range([ml + 4, W - 8]);
+  svg.append('g').attr('class', 'grid').attr('transform', `translate(${ml},0)`).call(d3.axisLeft(y).tickValues(yTicks).tickSize(-(W - ml - 6)).tickFormat(''));
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(${ml},0)`).call(d3.axisLeft(y).tickValues(yTicks.filter((t) => t > 0)).tickFormat((t) => (t / 1e5).toFixed(0) + ' L').tickSize(0).tickPadding(6)).call((g) => g.select('.domain').remove());
+  const every = Math.ceil(months.length / Math.max(2, Math.floor((W - ml) / 90)));
+  svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - 24})`).call(d3.axisBottom(x).tickValues(months.filter((m, i) => i % every === 0)).tickFormat((m) => d3.utcFormat('%b %y')(new Date(m + '-01T00:00:00Z'))).tickSize(0).tickPadding(8)).call((g) => g.select('.domain').remove());
+  const line = d3.line().x((d) => x(d.month)).y((d) => y(+d.net_revenue));
+  series.forEach(([ch, rs], i) => svg.append('path').datum(rs).attr('d', line).attr('fill', 'none').style('stroke', dash.colors[i]).attr('stroke-width', 2));
+  const t = tip(el);
+  const step = x.step();
+  svg.selectAll('rect.hit').data(months).join('rect').attr('class', 'hit').attr('x', (m) => x(m) - step / 2).attr('width', step).attr('y', 0).attr('height', H - 24).attr('fill', 'transparent')
+    .on('pointermove', (ev, m) => t.show(ev, [d3.utcFormat('%B %Y')(new Date(m + '-01T00:00:00Z')), ...series.map(([ch, rs]) => { const r = rs.find((d) => d.month === m); return ch + ' ' + (r ? inr(+r.net_revenue) : '—'); })]))
+    .on('pointerleave', () => t.hide());
+});
+
+dash.draw('category', (el) => {
+  const data = rows('category'); if (!data) return placeholder(el, 'category');
+  hbars(el, data, { label: (d) => d.category, value: (d) => +d.net_revenue, fmt: inr,
+    tipLines: (d) => [d.category, 'Net revenue ' + inr(+d.net_revenue), 'Margin ' + pct(+d.margin_pct), 'Units ' + num(+d.units), 'Return rate ' + pct(+d.return_rate)] })
+    .attr('aria-label', 'Bar chart of net revenue by product category');
+});
+
+function tbody(el, id, cells) {
+  const data = rows(id);
+  el.replaceChildren();
+  if (!data) return;
+  data.forEach((r) => {
+    const tr = document.createElement('tr');
+    cells.forEach(([f, cls]) => { const td = document.createElement('td'); if (cls) td.className = cls; const v = f(r); if (v instanceof Node) td.append(v); else td.textContent = v; tr.append(td); });
+    el.append(tr);
+  });
+}
+function pill(text, ok) { const s = document.createElement('span'); s.className = 'ss-pill ' + (ok ? 'ss-good' : 'ss-bad'); s.textContent = text; return s; }
+
+dash.draw('topprod', (el) => tbody(el, 'top_products', [[(r) => r.product_name], [(r) => r.category], [(r) => num(+r.units_sold), 'num'], [(r) => inr(+r.net_revenue), 'num'], [(r) => pct(+r.return_rate), 'num']]));
+
+dash.draw('funnel', (el) => {
+  const data = rows('funnel'); if (!data) return placeholder(el, 'funnel');
+  const first = +data[0].sessions;
+  hbars(el, data, { label: (d) => d.step, value: (d) => +d.sessions, fmt: (v) => num(v) + ' · ' + pct(v / first),
+    tipLines: (d) => [d.step, num(+d.sessions) + ' sessions', pct(+d.sessions / first) + ' of all sessions'] })
+    .attr('aria-label', 'Funnel of sessions reaching add to cart, checkout and purchase');
+});
+
+dash.draw('rfm', (el) => {
+  const data = rows('rfm'); if (!data) return placeholder(el, 'rfm');
+  hbars(el, data, { label: (d) => d.rfm_segment, value: (d) => +d.customers, fmt: (v) => num(v),
+    tipLines: (d) => [d.rfm_segment, num(+d.customers) + ' customers', 'Lifetime revenue ' + inr(+d.revenue), 'Avg ' + (+d.avg_orders).toFixed(1) + ' orders', 'Last order ' + Math.round(+d.avg_recency_days) + ' days ago (avg)'] })
+    .attr('aria-label', 'Bar chart of customers by RFM segment');
+});
+
+dash.draw('traffic', (el) => tbody(el, 'traffic_sources', [[(r) => r.utm_source], [(r) => num(+r.sessions), 'num'], [(r) => num(+r.purchases), 'num'], [(r) => pct(+r.conversion_rate), 'num'], [(r) => inr(+r.revenue), 'num']]));
+
+dash.draw('cohorts', (el) => {
+  const data = rows('cohorts'); if (!data) return placeholder(el, 'cohorts');
+  el.replaceChildren();
+  const cohorts = [...new Set(data.map((d) => d.cohort))];
+  const months = [...new Set(data.map((d) => +d.months_since_first))].sort((a, b) => a - b).filter((m) => m > 0);
+  const max = d3.max(data.filter((d) => +d.months_since_first > 0), (d) => +d.retention_rate);
+  const tbl = document.createElement('table'); tbl.className = 'ss-table ss-heat';
+  const hr = document.createElement('tr');
+  ['Cohort', 'Size', ...months.map((m) => 'M+' + m)].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 0) th.className = 'num'; hr.append(th); });
+  const thead = document.createElement('thead'); thead.append(hr); tbl.append(thead);
+  const tb = document.createElement('tbody');
+  cohorts.forEach((c) => {
+    const rs = data.filter((d) => d.cohort === c);
+    const tr = document.createElement('tr');
+    const a = document.createElement('td'); a.textContent = d3.utcFormat('%b %Y')(new Date(c + '-01T00:00:00Z')); tr.append(a);
+    const b = document.createElement('td'); b.className = 'num'; b.textContent = num(+rs[0].cohort_size); tr.append(b);
+    months.forEach((m) => {
+      const r = rs.find((d) => +d.months_since_first === m);
+      const td = document.createElement('td'); td.className = 'cell';
+      if (r) { td.textContent = pct(+r.retention_rate, 0); td.style.background = `color-mix(in srgb, ${dash.colors[0]} ${Math.round((+r.retention_rate / max) * 55)}%, transparent)`; }
+      tr.append(td);
+    });
+    tb.append(tr);
+  });
+  tbl.append(tb); el.append(tbl);
+});
+
+const reconLabel = { matched: 'Matched', not_charged: 'Cancelled, not charged', amount_mismatch: 'Amount mismatch', pending_cod_or_capture: 'Pending (COD / capture)', missing_payment: 'Missing payment', refund_pending: 'Refund pending' };
+dash.draw('recon', (el) => tbody(el, 'recon_status', [[(r) => pill(reconLabel[r.recon_status] || r.recon_status, ['matched', 'not_charged', 'pending_cod_or_capture'].includes(r.recon_status))], [(r) => num(+r.orders), 'num'], [(r) => inr(+r.abs_variance), 'num']]));
+
+dash.draw('paymethods', (el) => {
+  const data = rows('payment_methods'); if (!data) return placeholder(el, 'payment_methods');
+  const total = d3.sum(data, (d) => +d.amount);
+  hbars(el, data, { label: (d) => d.payment_method, value: (d) => +d.amount, fmt: inr,
+    tipLines: (d) => [d.payment_method, inr(+d.amount) + ' captured', num(+d.payments) + ' payments', pct(+d.amount / total) + ' of captured value'] })
+    .attr('aria-label', 'Bar chart of captured payment amount by method');
+});
+
+dash.draw('exceptions', (el) => tbody(el, 'recon_exceptions', [[(r) => r.order_id], [(r) => d3.utcFormat('%d %b %Y')(new Date(r.order_date + 'T00:00:00Z'))], [(r) => r.order_status], [(r) => r.payment_method || '—'], [(r) => '₹' + d3.format(',.2f')(+r.order_total), 'num'], [(r) => '₹' + d3.format(',.2f')(+r.captured_amount), 'num'], [(r) => d3.format('+,.2f')(+r.capture_variance), 'num'], [(r) => pill(reconLabel[r.recon_status] || r.recon_status, false)]]));
+
+dash.draw('dq', (el) => tbody(el, 'dq_results', [[(r) => r.rule], [(r) => r.severity], [(r) => d3.format(',.4~f')(+r.observed), 'num'], [(r) => d3.format(',.4~f')(+r.threshold), 'num'], [(r) => pill(r.status, r.status === 'PASS')]]));
+dash.draw('reconchecks', (el) => tbody(el, 'reconciliation', [[(r) => r.check_name], [(r) => d3.format(',.2~f')(+r.source), 'num'], [(r) => d3.format(',.2~f')(+r.target), 'num'], [(r) => pill(r.status, r.status === 'PASS')]]));
+dash.draw('layers', (el) => tbody(el, 'layer_counts', [[(r) => r.object], [(r) => num(+r.row_count), 'num']]));
+</script>

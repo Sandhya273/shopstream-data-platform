@@ -1,0 +1,4 @@
+promo_code,description,discount_type,campaign_owner
+FEST10,Festive season 10% off,percent,Marketing
+NEWUSER,First order discount,percent,Growth
+FLAT200,Flat 200 off above 1999,flat,Marketing

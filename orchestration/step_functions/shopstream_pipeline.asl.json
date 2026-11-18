@@ -1,0 +1,105 @@
+{
+  "Comment": "ShopStream hourly batch pipeline: extract -> compact -> load -> dbt -> DQ -> reconcile",
+  "StartAt": "ExtractPayments",
+  "States": {
+    "ExtractPayments": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {"FunctionName": "${payments_extractor_arn}", "Payload": {"full_refresh.$": "$.full_refresh"}},
+      "ResultSelector": {"records.$": "$.Payload.records", "watermark.$": "$.Payload.watermark"},
+      "ResultPath": "$.extract",
+      "Retry": [{"ErrorEquals": ["Lambda.ServiceException", "Lambda.TooManyRequestsException", "States.Timeout"],
+                 "IntervalSeconds": 10, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "CompactDmsTables"
+    },
+    "CompactDmsTables": {
+      "Type": "Map",
+      "ItemsPath": "$.dms_tables",
+      "MaxConcurrency": 4,
+      "ItemSelector": {"table.$": "$$.Map.Item.Value"},
+      "ItemProcessor": {
+        "ProcessorConfig": {"Mode": "INLINE"},
+        "StartAt": "GlueCompact",
+        "States": {
+          "GlueCompact": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::glue:startJobRun.sync",
+            "Parameters": {
+              "JobName": "${glue_job_name}",
+              "Arguments": {
+                "--TABLE_NAME.$": "$.table",
+                "--SOURCE_PATH.$": "States.Format('s3://${raw_bucket}/dms/{}/', $.table)",
+                "--TARGET_PATH.$": "States.Format('s3://${raw_bucket}/dms_parquet/{}/', $.table)"
+              }
+            },
+            "Retry": [{"ErrorEquals": ["Glue.AWSGlueException", "States.TaskFailed"], "IntervalSeconds": 60, "MaxAttempts": 2, "BackoffRate": 2.0}],
+            "End": true
+          }
+        }
+      },
+      "ResultPath": null,
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "LoadSnowflakeRaw"
+    },
+    "LoadSnowflakeRaw": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {"FunctionName": "${snowflake_loader_arn}", "Payload": {}},
+      "ResultSelector": {"tables.$": "$.Payload.tables"},
+      "ResultPath": "$.load",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed"], "IntervalSeconds": 30, "MaxAttempts": 2, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "DbtBuild"
+    },
+    "DbtBuild": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "Cluster": "${ecs_cluster_arn}",
+        "TaskDefinition": "${dbt_task_definition_arn}",
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {"AwsvpcConfiguration": {"Subnets": ${private_subnets}, "SecurityGroups": ["${dbt_sg}"], "AssignPublicIp": "DISABLED"}},
+        "Overrides": {"ContainerOverrides": [{"Name": "dbt", "Command": ["dbt", "build", "--target", "prod", "--exclude", "tag:realtime"]}]}
+      },
+      "ResultPath": null,
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "QualityAndReconciliation"
+    },
+    "QualityAndReconciliation": {
+      "Type": "Parallel",
+      "Branches": [
+        {"StartAt": "DataQualityChecks", "States": {"DataQualityChecks": {
+          "Type": "Task", "Resource": "arn:aws:states:::ecs:runTask.sync",
+          "Parameters": {"Cluster": "${ecs_cluster_arn}", "TaskDefinition": "${dbt_task_definition_arn}", "LaunchType": "FARGATE",
+            "NetworkConfiguration": {"AwsvpcConfiguration": {"Subnets": ${private_subnets}, "SecurityGroups": ["${dbt_sg}"]}},
+            "Overrides": {"ContainerOverrides": [{"Name": "dbt", "Command": ["python", "data_quality/dq_framework.py", "--target", "snowflake"]}]}},
+          "End": true}}},
+        {"StartAt": "Reconciliation", "States": {"Reconciliation": {
+          "Type": "Task", "Resource": "arn:aws:states:::ecs:runTask.sync",
+          "Parameters": {"Cluster": "${ecs_cluster_arn}", "TaskDefinition": "${dbt_task_definition_arn}", "LaunchType": "FARGATE",
+            "NetworkConfiguration": {"AwsvpcConfiguration": {"Subnets": ${private_subnets}, "SecurityGroups": ["${dbt_sg}"]}},
+            "Overrides": {"ContainerOverrides": [{"Name": "dbt", "Command": ["python", "data_quality/reconciliation.py", "--target", "snowflake"]}]}},
+          "End": true}}}
+      ],
+      "ResultPath": null,
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "NotifyFailure"}],
+      "Next": "NotifySuccess"
+    },
+    "NotifySuccess": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {"TopicArn": "${sns_topic_arn}", "Subject": "ShopStream pipeline succeeded",
+                     "Message.$": "States.Format('Run {} loaded {} payment records.', $$.Execution.Name, $.extract.records)"},
+      "End": true
+    },
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {"TopicArn": "${sns_topic_arn}", "Subject": "ShopStream pipeline FAILED",
+                     "Message.$": "States.Format('Run {} failed: {}', $$.Execution.Name, States.JsonToString($.error))"},
+      "Next": "Failed"
+    },
+    "Failed": {"Type": "Fail", "Error": "PipelineFailed"}
+  }
+}

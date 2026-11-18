@@ -1,0 +1,88 @@
+# Declarative DQ rules executed by dq_framework.py after every dbt build.
+# severity: critical -> pipeline fails (Step Functions Catch -> SNS alert)
+#           warning  -> recorded in audit table + shown on the DQ dashboard
+rules:
+  - name: fct_orders_pk_unique
+    table: marts.fct_orders
+    type: unique
+    column: order_id
+    severity: critical
+
+  - name: fct_orders_customer_sk_not_null
+    table: marts.fct_orders
+    type: not_null
+    column: customer_sk
+    severity: critical
+
+  - name: fct_orders_total_range
+    table: marts.fct_orders
+    type: range
+    column: order_total
+    min: 0
+    max: 1000000
+    severity: critical
+
+  - name: fct_orders_min_daily_volume
+    description: Volume anomaly - the latest day must have at least 30% of the trailing 28-day average
+    table: marts.mart_daily_sales
+    type: custom_sql
+    severity: warning
+    sql: |
+      with d as (select order_date, sum(orders) o from marts.mart_daily_sales group by 1),
+      last as (select max(order_date) md from d)
+      select count(*) from d, last
+      where d.order_date = last.md
+        and d.o < 0.3 * (select avg(o) from d, last where d.order_date between last.md - 28 and last.md - 1)
+
+  - name: orders_freshness
+    table: marts.fct_orders
+    type: freshness
+    column: order_ts
+    max_age_hours: 48
+    as_of: "2026-10-31 23:59:59"   # pinned for the sample data; production uses current_timestamp
+    severity: critical
+
+  - name: payments_status_values
+    table: marts.fct_payments
+    type: accepted_values
+    column: payment_status
+    values: [captured, failed, refunded]
+    severity: critical
+
+  - name: payments_without_order
+    table: marts.fct_payments
+    type: custom_sql
+    severity: warning
+    sql: select count(*) from marts.fct_payments where not has_matching_order
+
+  - name: customers_invalid_email_pct
+    description: Source-system data issue, tracked as a KPI (threshold 3%)
+    table: staging.stg_shop__customers
+    type: custom_sql
+    severity: warning
+    threshold: 0.03
+    sql: select avg(case when is_email_valid then 0.0 else 1.0 end) from staging.stg_shop__customers
+
+  - name: recon_exception_rate
+    table: marts.mart_payment_reconciliation
+    type: custom_sql
+    severity: critical
+    threshold: 0.01
+    sql: |
+      select avg(case when recon_status in ('amount_mismatch','missing_payment') then 1.0 else 0.0 end)
+      from marts.mart_payment_reconciliation
+
+  - name: sessions_pk_unique
+    table: marts.fct_sessions
+    type: unique
+    column: session_id
+    severity: critical
+
+  - name: dim_customer_single_current
+    table: marts.dim_customer
+    type: custom_sql
+    severity: critical
+    sql: |
+      select count(*) from (
+        select customer_id from marts.dim_customer group by 1
+        having sum(case when is_current then 1 else 0 end) <> 1) x

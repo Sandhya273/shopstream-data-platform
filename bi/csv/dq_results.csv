@@ -1,0 +1,12 @@
+rule,table_name,rule_type,severity,observed,threshold,status
+dim_customer_single_current,marts.dim_customer,custom_sql,critical,0.0,0.0,PASS
+fct_orders_customer_sk_not_null,marts.fct_orders,not_null,critical,0.0,0.0,PASS
+fct_orders_pk_unique,marts.fct_orders,unique,critical,0.0,0.0,PASS
+fct_orders_total_range,marts.fct_orders,range,critical,0.0,0.0,PASS
+orders_freshness,marts.fct_orders,freshness,critical,0.1361,48.0,PASS
+payments_status_values,marts.fct_payments,accepted_values,critical,0.0,0.0,PASS
+recon_exception_rate,marts.mart_payment_reconciliation,custom_sql,critical,0.0043,0.01,PASS
+sessions_pk_unique,marts.fct_sessions,unique,critical,0.0,0.0,PASS
+customers_invalid_email_pct,staging.stg_shop__customers,custom_sql,warning,0.0222,0.03,PASS
+fct_orders_min_daily_volume,marts.mart_daily_sales,custom_sql,warning,0.0,0.0,PASS
+payments_without_order,marts.fct_payments,custom_sql,warning,0.0,0.0,PASS

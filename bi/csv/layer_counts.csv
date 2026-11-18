@@ -1,0 +1,9 @@
+object,row_count
+raw.dms_orders (CDC rows),126092
+staging.stg_shop__orders,42162
+marts.fct_orders,42120
+raw.clickstream_events,216244
+marts.fct_sessions,57779
+raw.payments,46504
+marts.fct_payments,46504
+marts.dim_customer (SCD2 versions),6418

@@ -1,0 +1,8 @@
+env                                = "dev"
+snowflake_storage_aws_iam_user_arn = "arn:aws:iam::123456789012:user/abc0000-s"
+snowflake_storage_external_id      = "AB12345_SFCRole=2_abcdefg="
+snowpipe_sqs_arn                   = "arn:aws:sqs:ap-south-1:123456789012:sf-snowpipe-AIDA..."
+source_db_endpoint                 = "shopdb.xxxx.ap-south-1.rds.amazonaws.com"
+vpc_id                             = "vpc-0123456789abcdef0"
+private_subnet_ids                 = ["subnet-aaa", "subnet-bbb"]
+dbt_image_uri                      = "123456789012.dkr.ecr.ap-south-1.amazonaws.com/shopstream-dbt:latest"

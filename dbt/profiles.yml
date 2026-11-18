@@ -1,0 +1,42 @@
+# Credentials come from environment variables - nothing secret is committed.
+# Snowflake uses key-pair auth for service users (no passwords in CI).
+shopstream:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', '../warehouse/shopstream.duckdb') }}"
+      schema: main
+      threads: 4
+
+    ci:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', '../warehouse/shopstream.duckdb') }}"
+      schema: main
+      threads: 4
+
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      authenticator: externalbrowser            # SSO for humans
+      role: TRANSFORMER_ROLE
+      warehouse: TRANSFORM_WH
+      database: ANALYTICS_DB
+      schema: "DBT_{{ env_var('DBT_USER', 'DEV') | upper }}"
+      threads: 8
+      query_tag: dbt_dev
+
+    prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: SVC_DBT
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      role: TRANSFORMER_ROLE
+      warehouse: TRANSFORM_WH
+      database: ANALYTICS_DB
+      schema: PUBLIC
+      threads: 12
+      query_tag: dbt_prod
+      client_session_keep_alive: false

@@ -1,0 +1,7 @@
+metric,label,current,previous
+net_revenue,Net revenue (INR),375496746.05,247595109.6
+orders,Orders,22674,14872
+aov,Average order value (INR),16560.675,16648.407
+margin_pct,Gross margin %,0.2664,0.2628
+active_customers,Active customers,5595,3452
+return_rate,Return rate,0.0484,0.0507

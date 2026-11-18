@@ -1,0 +1,32 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Landing tables loaded by Snowpipe / COPY INTO from the S3 raw bucket
+      (snowflake/04_raw_tables.sql). Locally loaded by scripts/load_raw_local.py.
+    database: "{{ 'RAW_DB' if target.type == 'snowflake' else target.database }}"
+    schema: raw
+    loaded_at_field: _loaded_at
+    freshness:
+      warn_after: {count: 6, period: hour}
+      error_after: {count: 24, period: hour}
+    tables:
+      - name: dms_customers
+        description: AWS DMS CDC feed of shop_db.public.customers (Op = I/U/D).
+      - name: dms_products
+        description: AWS DMS CDC feed of shop_db.public.products.
+      - name: dms_orders
+        description: AWS DMS CDC feed of shop_db.public.orders. Contains replayed duplicates and hard deletes.
+      - name: dms_order_items
+        description: AWS DMS CDC feed of shop_db.public.order_items.
+      - name: payments
+        description: Payments gateway API records (Parquet -> VARIANT column RAW).
+        columns:
+          - name: raw
+            description: Full JSON payload incl. nested fees / card / upi objects.
+      - name: clickstream_events
+        description: Validated web/app events (Firehose -> Lambda -> Snowpipe), one JSON document per row.
+      - name: load_history
+        description: Per-file load audit (mirrors COPY_HISTORY); used for reconciliation.
+        freshness: null

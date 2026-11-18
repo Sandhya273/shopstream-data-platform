@@ -1,0 +1,79 @@
+version: 2
+
+models:
+  - name: stg_shop__orders
+    description: Current state of each order, deduplicated from the DMS CDC log.
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_shop__customers'), field: customer_id}
+      - name: order_status
+        tests:
+          - accepted_values:
+              arguments: {values: ['placed', 'shipped', 'delivered', 'cancelled', 'returned']}
+      - name: channel
+        tests:
+          - accepted_values:
+              arguments: {values: ['web', 'app', 'marketplace']}
+
+  - name: stg_shop__order_items
+    columns:
+      - name: order_item_id
+        tests: [unique, not_null]
+      - name: quantity
+        tests: [not_null, non_negative]
+      - name: net_amount
+        tests: [non_negative]
+      - name: product_id
+        tests:
+          - relationships:
+              arguments: {to: ref('stg_shop__products'), field: product_id}
+
+  - name: stg_shop__customers
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]
+      - name: email
+        description: Known source issue - ~1% missing, ~1% malformed. Tracked, not blocking.
+        tests:
+          - valid_email: {config: {severity: warn}}
+          - not_null: {config: {severity: warn}}
+
+  - name: stg_shop__products
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+      - name: sku
+        tests: [unique, not_null]
+      - name: unit_price
+        tests: [non_negative]
+
+  - name: stg_payments__payments
+    columns:
+      - name: payment_id
+        tests: [unique, not_null]
+      - name: payment_status
+        tests:
+          - accepted_values:
+              arguments: {values: ['captured', 'failed', 'refunded']}
+      - name: payment_method
+        tests:
+          - accepted_values:
+              arguments: {values: ['UPI', 'card', 'netbanking', 'wallet', 'COD']}
+      - name: amount
+        tests: [not_null, non_negative]
+
+  - name: stg_clickstream__events
+    columns:
+      - name: event_id
+        tests: [unique, not_null]
+      - name: event_type
+        tests:
+          - accepted_values:
+              arguments: {values: ['page_view', 'product_view', 'add_to_cart', 'checkout_start', 'purchase']}
+      - name: event_ts
+        tests: [not_null]

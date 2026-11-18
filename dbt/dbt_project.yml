@@ -1,0 +1,50 @@
+name: shopstream
+version: "1.0.0"
+config-version: 2
+profile: shopstream
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # incremental models reprocess this many days to absorb late-arriving data
+  incremental_lookback_days: 3
+  # "today" for reporting; pinned so local/CI runs on the sample data are reproducible
+  reporting_as_of: "2026-10-31"
+
+models:
+  shopstream:
+    +persist_docs: {relation: true, columns: true}
+    staging:
+      +schema: staging
+      +materialized: view
+      +tags: ["staging"]
+    intermediate:
+      +schema: intermediate
+      +materialized: "{{ 'ephemeral' if target.name == 'ci' else 'table' }}"
+      +tags: ["intermediate"]
+      # Snowflake: transient tables -> no Fail-safe storage cost for rebuildable layers
+      +transient: true
+    marts:
+      +schema: marts
+      +materialized: table
+      +tags: ["marts"]
+      core:
+        +tags: ["core"]
+      marketing:
+        +tags: ["marketing"]
+      finance:
+        +tags: ["finance"]
+
+snapshots:
+  shopstream:
+    +target_schema: snapshots
+
+seeds:
+  shopstream:
+    +schema: reference

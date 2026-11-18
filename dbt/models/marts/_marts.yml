@@ -1,0 +1,81 @@
+version: 2
+
+models:
+  - name: dim_date
+    columns:
+      - name: date_day
+        tests: [unique, not_null]
+
+  - name: dim_customer
+    description: SCD Type 2 customer dimension (one row per customer version).
+    columns:
+      - name: customer_sk
+        tests: [unique, not_null]
+      - name: email
+        meta: {pii: true, masking_policy: pii_email_mask}
+      - name: phone
+        meta: {pii: true, masking_policy: pii_phone_mask}
+    tests:
+      - dbt_utils_free_one_current_row_per_customer
+
+  - name: dim_product
+    columns:
+      - name: product_sk
+        tests: [unique, not_null]
+
+  - name: fct_orders
+    description: One row per order (incremental, MERGE on order_id).
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: customer_sk
+        description: Point-in-time customer version.
+        tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_customer'), field: customer_sk}
+      - name: order_date
+        tests:
+          - relationships:
+              arguments: {to: ref('dim_date'), field: date_day}
+      - name: order_total
+        tests: [non_negative]
+    tests:
+      - row_count_matches:
+          arguments:
+            compare_model: "(select * from {{ ref('stg_shop__orders') }} where not is_deleted)"
+
+  - name: fct_order_items
+    columns:
+      - name: order_item_id
+        tests: [unique, not_null]
+      - name: product_sk
+        tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_product'), field: product_sk}
+
+  - name: fct_sessions
+    columns:
+      - name: session_id
+        tests: [unique, not_null]
+
+  - name: fct_payments
+    columns:
+      - name: payment_id
+        tests: [unique, not_null]
+
+  - name: mart_payment_reconciliation
+    columns:
+      - name: order_id
+        tests: [unique]
+      - name: recon_status
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['matched', 'not_charged', 'pending_cod_or_capture', 'missing_payment', 'amount_mismatch', 'refund_pending']
+
+  - name: mart_customer_rfm
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]

@@ -1,0 +1,10 @@
+check_name,source,target,difference,status
+dms: files landed vs loaded,100.0,100.0,0.0,PASS
+dms: rows in files vs rows loaded,203008.0,203008.0,0.0,PASS
+clickstream: lambda valid events vs raw rows,216244.0,216244.0,0.0,PASS
+clickstream: lines received = valid + quarantined + duplicates,217284.0,217284.0,0.0,PASS
+payments: extractor records vs raw rows,46504.0,46504.0,0.0,PASS
+orders: live orders in CDC vs fct_orders,42120.0,42120.0,0.0,PASS
+order lines: staging vs fct_order_items,69973.0,69973.0,0.0,PASS
+revenue: staging order totals vs fct_orders.order_total (INR),700276849.25,700276849.25,0.0,PASS
+payments: captured INR staging vs fct_payments,687746877.56,687746877.56,0.0,PASS

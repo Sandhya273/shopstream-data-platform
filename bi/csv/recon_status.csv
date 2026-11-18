@@ -1,0 +1,6 @@
+recon_status,orders,abs_variance
+matched,41283,0.0
+not_charged,560,9497003.75
+amount_mismatch,115,8561.97
+pending_cod_or_capture,94,1864519.2
+missing_payment,68,1168729.35

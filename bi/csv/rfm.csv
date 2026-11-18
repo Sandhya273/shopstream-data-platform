@@ -1,0 +1,7 @@
+rfm_segment,customers,revenue,avg_recency_days,avg_orders
+At Risk,1278,190245441.2,132.1064,8.8865
+Champions,994,177053461.35,10.8531,10.9517
+Loyal,1104,153097288.15,26.9837,8.0571
+Hibernating,974,45724555.55,142.5965,2.8326
+New / Promising,808,35640056.5,10.8144,2.8762
+Needs Attention,470,21331052.9,37.2809,2.8191
