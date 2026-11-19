@@ -1,6 +1,7 @@
 -- =====================================================================
 -- Step 5: Snowflake account setup for the ShopStream project (trial-friendly)
 -- Run in Snowsight as ACCOUNTADMIN. Safe to re-run (IF NOT EXISTS / OR REPLACE).
+-- If your Snowflake username is not SANJU24, replace it everywhere (Ctrl + H).
 --
 -- Creates:
 --   * 3 X-Small warehouses that suspend after 60 seconds idle
@@ -74,12 +75,13 @@ GRANT ROLE PII_READER_ROLE  TO ROLE PLATFORM_ADMIN_ROLE;
 GRANT ROLE PLATFORM_ADMIN_ROLE TO ROLE SYSADMIN;
 
 -- Give all of them to you (so you can test each role in Snowsight)
-SET ME = CURRENT_USER();
-GRANT ROLE PLATFORM_ADMIN_ROLE TO USER IDENTIFIER($ME);
-GRANT ROLE LOADER_ROLE         TO USER IDENTIFIER($ME);
-GRANT ROLE TRANSFORMER_ROLE    TO USER IDENTIFIER($ME);
-GRANT ROLE ANALYST_ROLE        TO USER IDENTIFIER($ME);
-GRANT ROLE BI_READER_ROLE      TO USER IDENTIFIER($ME);
+-- Your username is written directly (no session variables: Snowsight can run statements
+-- of a long script in different sessions, which loses SET variables).
+GRANT ROLE PLATFORM_ADMIN_ROLE TO USER SANJU24;
+GRANT ROLE LOADER_ROLE         TO USER SANJU24;
+GRANT ROLE TRANSFORMER_ROLE    TO USER SANJU24;
+GRANT ROLE ANALYST_ROLE        TO USER SANJU24;
+GRANT ROLE BI_READER_ROLE      TO USER SANJU24;
 
 -- Warehouse access
 GRANT USAGE ON WAREHOUSE LOAD_WH      TO ROLE LOADER_ROLE;
@@ -139,10 +141,10 @@ GRANT SELECT ON FUTURE VIEWS  IN SCHEMA ANALYTICS_DB.MARTS TO ROLE BI_READER_ROL
 -- 6. Your defaults, then verify
 -- ---------------------------------------------------------------------
 USE ROLE ACCOUNTADMIN;
-ALTER USER IDENTIFIER($ME) SET DEFAULT_ROLE = PLATFORM_ADMIN_ROLE DEFAULT_WAREHOUSE = TRANSFORM_WH;
+ALTER USER SANJU24 SET DEFAULT_ROLE = PLATFORM_ADMIN_ROLE DEFAULT_WAREHOUSE = TRANSFORM_WH;
 
 SHOW WAREHOUSES LIKE '%_WH';
 SHOW RESOURCE MONITORS;
 SHOW DATABASES LIKE '%_DB';
 SHOW SCHEMAS IN DATABASE ANALYTICS_DB;
-SHOW GRANTS TO USER IDENTIFIER($ME);
+SHOW GRANTS TO USER SANJU24;
